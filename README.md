@@ -1,5 +1,7 @@
 # Student Management API
 
+## 524H0086 - Trần Hồng Nhật Duy, 524H0087 - Nguyễn Đức Hiệu, 524H0081 - Phan Huy Bính
+
 FastAPI seminar project for **Topic 11-2: API Testing with Postman & Newman**.
 
 This repository contains a small Student Management REST API plus local automation for the full workflow:
