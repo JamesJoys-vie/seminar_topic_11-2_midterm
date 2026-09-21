@@ -262,7 +262,7 @@ http://127.0.0.1:8080/docs
 
 ## More Instructions
 
-For a detailed explanation of how the Build-Test-Deploy automation works and how to rebuild it yourself, read:
+For a detailed explanation of how to configure, run and integrate it yourself, read:
 
 ```text
 INSTRUCTION.md
