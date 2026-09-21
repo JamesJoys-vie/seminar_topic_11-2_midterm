@@ -1,25 +1,34 @@
-# How to Configure and Run This Project by Yourself
+# Project Configuration Runbook
 
-This guide explains how to set up, test, run, and optionally expose the Student Management API from your own machine.
+This project is a FastAPI API with local automation for:
 
-The project has three moving parts:
+- Build: create `.venv/`, install Python dependencies, verify app import.
+- Test: run Newman against the API with Postman tests.
+- Deploy: start the API locally with Uvicorn.
+- Verify: check local and optional ngrok health endpoints.
+- Stop: stop the background local API process.
 
-- Python runs the FastAPI application in `main.py`.
-- Node.js installs local test tools, especially Newman.
-- PowerShell scripts automate Build, Test, Deploy, Stop, and ngrok verification steps.
+Run all commands from the project root.
 
-Run every command from the project root, the folder that contains `main.py`, `requirements.txt`, `package.json`, and `scripts/`.
+```text
+seminar_topic_11-2_midterm/
+  main.py
+  requirements.txt
+  package.json
+  scripts/
+  postman/
+```
 
-## 1. Install Required Tools
+## 1. Prerequisites
 
-Install these tools first:
+Install:
 
-- Python 3.13, or another compatible Python 3 version.
-- Node.js and npm.
-- PowerShell.
-- ngrok, only if you want a public URL.
+- Python 3.13 or compatible Python 3
+- Node.js and npm
+- PowerShell
+- ngrok, only for a public URL
 
-Check the tools:
+Verify:
 
 ```powershell
 python --version
@@ -28,17 +37,13 @@ npm --version
 $PSVersionTable.PSVersion
 ```
 
-If one of those commands is missing, install that tool before continuing.
+## 2. First-Time Setup
 
-## 2. Install Project Dependencies
-
-Install the Node.js dependencies:
+Install Node.js dependencies:
 
 ```powershell
 npm install
 ```
-
-This creates `node_modules/` and installs Newman locally. You do not need a global Newman installation.
 
 Build the Python environment:
 
@@ -48,15 +53,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 
 The build script:
 
-1. Checks that Python and `requirements.txt` are available.
-2. Creates or reuses `.venv/`.
-3. Installs packages from `requirements.txt`.
-4. Verifies that `main.py` can be imported.
-5. Runs `pip check`.
+1. Creates or reuses `.venv/`.
+2. Installs packages from `requirements.txt`.
+3. Verifies that `main.py` imports correctly.
+4. Runs `pip check`.
 
-When this passes, the project is configured for local use.
-
-## 3. Run the API Locally
+## 3. Run This Project Locally
 
 Start the API:
 
@@ -64,65 +66,35 @@ Start the API:
 npm run deploy:local
 ```
 
-By default, the API runs at:
+Default local URLs:
 
 ```text
-http://127.0.0.1:8080
+API:    http://127.0.0.1:8080
+Docs:   http://127.0.0.1:8080/docs
+Health: http://127.0.0.1:8080/actuator/health
 ```
 
-Open the API docs:
-
-```text
-http://127.0.0.1:8080/docs
-```
-
-Check the health endpoint:
+Verify health:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8080/actuator/health
 ```
 
-Expected result:
+Expected response includes:
 
 ```text
 status: UP
 ```
 
-Stop the API when finished:
+Stop the API:
 
 ```powershell
 npm run stop:local
 ```
 
-## 4. Run on a Custom Port
+## 4. Run Tests
 
-Use a custom port if `8080` is busy or if ngrok is forwarding to a different port.
-
-Deploy only:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\deploy-local.ps1 -Port 8081
-```
-
-Full local CI/CD workflow:
-
-```powershell
-npm run cicd:local -- -Port 8081
-```
-
-The `--` after `npm run cicd:local` is important. It tells npm to pass the remaining arguments to the PowerShell script.
-
-With port `8081`, use:
-
-```text
-http://127.0.0.1:8081
-http://127.0.0.1:8081/docs
-http://127.0.0.1:8081/actuator/health
-```
-
-## 5. Run the API Tests
-
-Run the Newman API test suite:
+Run Newman API tests:
 
 ```powershell
 npm run test:api
@@ -130,51 +102,44 @@ npm run test:api
 
 The test script:
 
-1. Runs the Build phase.
-2. Installs npm dependencies unless skipped.
-3. Converts the Postman YAML workspace into Newman JSON files.
-4. Starts a temporary Uvicorn server.
+1. Builds the Python environment.
+2. Installs npm dependencies if needed.
+3. Generates Newman files under `postman/newman/`.
+4. Starts a temporary API server.
 5. Waits for `/actuator/health`.
 6. Runs Newman.
 7. Writes reports under `reports/newman/`.
 8. Stops the temporary server.
 
-Run tests on a custom port:
+## 5. Run the Full Local Pipeline
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\test.ps1 -Port 8081
-```
-
-## 6. Run the Full Local CI/CD Workflow
-
-Run the whole workflow:
+Run Build, Test, Deploy, and local health verification:
 
 ```powershell
 npm run cicd:local
 ```
 
-This runs:
-
-1. Stop any existing local deployment.
-2. Build the Python environment.
-3. Test the API with Newman.
-4. Deploy the API locally.
-5. Verify the local health endpoint.
-6. Write a summary to `.runtime/pipeline-summary.txt`.
-
-If any phase fails, the pipeline stops immediately.
-
-Run the full workflow on another port:
+Run on another port:
 
 ```powershell
 npm run cicd:local -- -Port 8081
 ```
 
-## 7. Expose the API with ngrok
+The `--` is required so npm passes `-Port 8081` to `scripts/pipeline.ps1`.
 
-The project can verify a public ngrok URL, but it does not start ngrok for you. Start ngrok in a separate terminal first.
+With port `8081`, use:
 
-For the default port:
+```text
+API:    http://127.0.0.1:8081
+Docs:   http://127.0.0.1:8081/docs
+Health: http://127.0.0.1:8081/actuator/health
+```
+
+## 6. Use ngrok for a Public URL
+
+Start ngrok in a separate terminal.
+
+For port `8080`:
 
 ```powershell
 ngrok http http://127.0.0.1:8080
@@ -186,29 +151,23 @@ For port `8081`:
 ngrok http http://127.0.0.1:8081
 ```
 
-Use `127.0.0.1` instead of `localhost` to avoid IPv4/IPv6 forwarding confusion on Windows.
+Use `127.0.0.1`, not `localhost`, to avoid Windows IPv4/IPv6 forwarding issues.
 
-ngrok will show a forwarding URL, for example:
+ngrok prints a forwarding URL:
 
 ```text
 https://real-ngrok-url.ngrok-free.dev -> http://127.0.0.1:8081
 ```
 
-Copy the real URL from your ngrok terminal. Do not use placeholder text such as `https://your-url.ngrok-free.dev`.
+Use the real URL shown by ngrok. Do not use placeholder text.
 
-Then run the pipeline with the same port and the real ngrok URL:
+Run the pipeline with ngrok verification:
 
 ```powershell
 npm run cicd:local -- -Port 8081 -NgrokUrl "https://real-ngrok-url.ngrok-free.dev"
 ```
 
-The pipeline will check:
-
-```text
-https://real-ngrok-url.ngrok-free.dev/actuator/health
-```
-
-You can also store the public URL in the current PowerShell session:
+Or store the URL in the current PowerShell session:
 
 ```powershell
 $env:NGROK_PUBLIC_URL = "https://real-ngrok-url.ngrok-free.dev"
@@ -221,9 +180,9 @@ Verify only ngrok:
 npm run verify:ngrok -- -NgrokUrl "https://real-ngrok-url.ngrok-free.dev"
 ```
 
-## 8. API Login and Base URL
+## 7. API Details
 
-Default local base URL:
+Default base URL:
 
 ```text
 http://127.0.0.1:8080
@@ -236,62 +195,64 @@ Username: admin
 Password: admin123
 ```
 
-Public endpoint:
+Important endpoints:
 
-```text
-GET /actuator/health
-```
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/actuator/health` | Health check |
+| `POST` | `/api/auth/login` | Login and receive token |
+| `GET` | `/api/students` | List students |
+| `POST` | `/api/students` | Create student |
+| `PUT` | `/api/students/{id}` | Update student |
+| `DELETE` | `/api/students/{id}` | Delete student |
 
-Login endpoint:
+Student endpoints require a bearer token from login.
 
-```text
-POST /api/auth/login
-```
+## 8. Generated Files
 
-Protected student endpoints require a bearer token from login.
-
-## 9. Generated Files
-
-These files are generated locally:
+Do not commit generated files.
 
 | Path | Purpose |
 |---|---|
 | `.venv/` | Python virtual environment |
-| `node_modules/` | Local npm dependencies |
-| `.runtime/api.pid` | Running local API process ID |
-| `.runtime/api.url` | Current local API URL |
-| `.runtime/api.out.log` | API stdout log |
-| `.runtime/api.err.log` | API stderr log |
-| `.runtime/pipeline-summary.txt` | Pipeline result summary |
-| `postman/newman/` | Generated Newman collection and environment |
-| `reports/newman/` | Newman JSON and JUnit reports |
+| `node_modules/` | npm dependencies |
+| `.runtime/` | process IDs, URLs, logs, pipeline summaries |
+| `postman/newman/` | generated Newman collection and environment |
+| `reports/newman/` | Newman reports |
 
-These files are generated output or machine-specific state. They should not be committed.
-
-# Integrate This Workflow into Your Own Project
-
-You can reuse this local Build-Test-Deploy workflow in another FastAPI project. The goal is to copy the automation pattern, then change the project-specific names, import checks, Postman files, and health endpoint.
-
-### Expected Project Shape
-
-Your own project should have a structure similar to this:
+Recommended `.gitignore` entries:
 
 ```text
-your-project/
-  main.py
-  requirements.txt
-  package.json
-  scripts/
-  postman/
+.venv/
+node_modules/
+.runtime/
+reports/
+postman/newman/
 ```
 
-The scripts assume that the FastAPI app can be started with:
+## 9. Configure This Automation for Your Own Project
 
-```powershell
-python -m uvicorn main:app --host 127.0.0.1 --port 8080
+Use this repository as a template when your own project is also a FastAPI API.
+
+### 9.1 Set Your Python App Target
+
+The current scripts run:
+
+```text
+main:app
 ```
 
-If your app is not named `main.py`, or your FastAPI object is not named `app`, update the scripts wherever `main:app` appears.
+That means:
+
+- File: `main.py`
+- FastAPI instance: `app`
+
+If your project uses another target, update it in:
+
+```text
+scripts/test.ps1
+scripts/deploy-local.ps1
+```
 
 Examples:
 
@@ -301,24 +262,101 @@ app.main:app
 src.server:api
 ```
 
-### Files to Copy
+Use the same target you would pass to Uvicorn:
 
-Copy these automation files into your own project:
+```powershell
+uvicorn app.main:app --host 127.0.0.1 --port 8080
+```
+
+### 9.2 Set Your Python Dependencies
+
+Update:
+
+```text
+requirements.txt
+```
+
+It must contain every package needed to import and run your API.
+
+Then update the import check in:
 
 ```text
 scripts/build.ps1
-scripts/test.ps1
-scripts/deploy-local.ps1
-scripts/stop-local.ps1
-scripts/pipeline.ps1
-scripts/verify-ngrok.ps1
-scripts/export-postman-newman.mjs
-package.json scripts section
 ```
 
-If your project already has a `package.json`, copy only the useful scripts and dependencies instead of replacing the whole file.
+Current project check:
 
-Required npm scripts:
+```powershell
+& $PythonInVenv -c "import main; assert main.app.title == 'Student Management API'; print('FastAPI app import OK')"
+```
+
+Generic check:
+
+```powershell
+& $PythonInVenv -c "import main; assert main.app; print('FastAPI app import OK')"
+```
+
+Package-style app check:
+
+```powershell
+& $PythonInVenv -c "from app.main import app; assert app; print('FastAPI app import OK')"
+```
+
+### 9.3 Set Your Health Endpoint
+
+The scripts expect:
+
+```text
+GET /actuator/health
+```
+
+Expected JSON:
+
+```json
+{
+  "status": "UP"
+}
+```
+
+If your project uses another path, replace `/actuator/health` in:
+
+```text
+scripts/test.ps1
+scripts/deploy-local.ps1
+scripts/pipeline.ps1
+scripts/verify-ngrok.ps1
+```
+
+### 9.4 Set Your Postman/Newman Tests
+
+The test script currently uses:
+
+```powershell
+$CollectionPath = Resolve-FromProjectRoot "postman\newman\API Testing.postman_collection.json"
+$EnvironmentPath = Resolve-FromProjectRoot "postman\newman\Test Subject 1.postman_environment.json"
+```
+
+For your own project, either:
+
+- Export your Postman collection and environment to those paths.
+- Change the paths in `scripts/test.ps1`.
+- Update `scripts/export-postman-newman.mjs` to generate your files.
+
+Your Postman requests should use:
+
+```text
+{{baseUrl}}
+```
+
+The test script injects it with:
+
+```powershell
+--env-var "baseUrl=$BaseUrl"
+```
+
+### 9.5 Keep or Copy npm Scripts
+
+Required `package.json` scripts:
 
 ```json
 {
@@ -342,136 +380,9 @@ After editing `package.json`, run:
 npm install
 ```
 
-### Update the Python Build Check
+### 9.6 Verify Your Own Project
 
-In `scripts/build.ps1`, find the import verification command.
-
-This project uses:
-
-```powershell
-& $PythonInVenv -c "import main; assert main.app.title == 'Student Management API'; print('FastAPI app import OK')"
-```
-
-For your own project, change it to match your app.
-
-Generic example:
-
-```powershell
-& $PythonInVenv -c "import main; assert main.app; print('FastAPI app import OK')"
-```
-
-If your module is `app.main`:
-
-```powershell
-& $PythonInVenv -c "from app.main import app; assert app; print('FastAPI app import OK')"
-```
-
-This check should prove that your application can be imported before the test or deploy phase starts.
-
-### Update the Uvicorn App Target
-
-In `scripts/test.ps1` and `scripts/deploy-local.ps1`, find:
-
-```powershell
-"main:app"
-```
-
-Replace it with your actual Uvicorn target.
-
-For example:
-
-```powershell
-"app.main:app"
-```
-
-Use the same target you would use manually:
-
-```powershell
-uvicorn app.main:app --host 127.0.0.1 --port 8080
-```
-
-### Add a Health Endpoint
-
-The automation expects this endpoint:
-
-```text
-GET /actuator/health
-```
-
-It should return JSON with:
-
-```json
-{
-  "status": "UP"
-}
-```
-
-If your project uses another health path, update these scripts:
-
-```text
-scripts/test.ps1
-scripts/deploy-local.ps1
-scripts/pipeline.ps1
-scripts/verify-ngrok.ps1
-```
-
-Search for:
-
-```text
-/actuator/health
-```
-
-Then replace it with your own health path.
-
-### Add or Export Postman Tests
-
-This workflow tests the API with Newman. You need a Newman-compatible Postman collection and environment.
-
-For this project, `scripts/export-postman-newman.mjs` converts local Postman YAML files into:
-
-```text
-postman/newman/API Testing.postman_collection.json
-postman/newman/Test Subject 1.postman_environment.json
-```
-
-For your own project, choose one approach:
-
-- Keep the converter script and adjust it to your Postman folder structure.
-- Export a Postman collection and environment directly as JSON.
-- Replace the collection and environment paths inside `scripts/test.ps1`.
-
-In `scripts/test.ps1`, update these paths if your files have different names:
-
-```powershell
-$CollectionPath = Resolve-FromProjectRoot "postman\newman\API Testing.postman_collection.json"
-$EnvironmentPath = Resolve-FromProjectRoot "postman\newman\Test Subject 1.postman_environment.json"
-```
-
-Your Postman environment should use a `baseUrl` variable, because the test script passes:
-
-```powershell
---env-var "baseUrl=$BaseUrl"
-```
-
-That lets the same test collection run on port `8080`, port `8081`, or any other configured port.
-
-### Update Ignored Generated Files
-
-Add these generated paths to your own `.gitignore`:
-
-```text
-.venv/
-node_modules/
-.runtime/
-reports/
-postman/newman/
-```
-
-Keep source files, scripts, Postman source collections, and documentation committed. Keep generated runtime files out of Git.
-
-### Verify the Integration
-
-After copying and editing the workflow, test one phase at a time:
+Run these in order:
 
 ```powershell
 npm install
@@ -497,85 +408,88 @@ Invoke-RestMethod http://127.0.0.1:8080/actuator/health
 npm run stop:local
 ```
 
-When each separate phase works, run the full workflow:
+Then run everything together:
 
 ```powershell
 npm run cicd:local
 ```
 
-For ngrok verification, start ngrok first:
+## 10. Troubleshooting
 
-```powershell
-ngrok http http://127.0.0.1:8080
-```
+### PowerShell Blocks Scripts
 
-Then pass the real public URL:
-
-```powershell
-npm run cicd:local -- -NgrokUrl "https://real-ngrok-url.ngrok-free.dev"
-```
-
-### Integration Checklist
-
-- `requirements.txt` contains all Python dependencies.
-- `scripts/build.ps1` imports the correct Python module.
-- `scripts/test.ps1` and `scripts/deploy-local.ps1` use the correct Uvicorn target.
-- A health endpoint returns `{ "status": "UP" }`.
-- Newman collection and environment paths are correct.
-- Postman tests use `{{baseUrl}}`.
-- `package.json` contains the automation scripts.
-- `.gitignore` excludes generated local files.
-- `npm run cicd:local` passes from a clean terminal.
-
-## 11. Troubleshooting
-
-If PowerShell blocks a script, run it with:
+Use this pattern:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-Use the same pattern for `test.ps1`, `deploy-local.ps1`, `pipeline.ps1`, and `verify-ngrok.ps1`.
+Replace `build.ps1` with the script you need.
 
-If port `8080` is busy, run the workflow on another port:
+### Port Is Busy
+
+Use another port:
 
 ```powershell
 npm run cicd:local -- -Port 8081
 ```
 
-If the local API is already running, stop it:
+Or stop the existing deployment:
 
 ```powershell
 npm run stop:local
 ```
 
-If ngrok verification returns `404 Not Found`, check that you passed the real ngrok URL. This is wrong:
+### Local Health Works but ngrok Fails
+
+Check that ngrok and the pipeline use the same port:
+
+```text
+ngrok:    http://127.0.0.1:8081
+pipeline: -Port 8081
+```
+
+Check that you passed the real ngrok URL.
+
+Wrong:
 
 ```powershell
 npm run cicd:local -- -Port 8081 -NgrokUrl "https://your-url.ngrok-free.dev"
 ```
 
-This is correct when it matches the real URL shown by ngrok:
+Correct:
 
 ```powershell
 npm run cicd:local -- -Port 8081 -NgrokUrl "https://real-ngrok-url.ngrok-free.dev"
 ```
 
-If ngrok returns `ERR_NGROK_3200`, the public endpoint is offline. Keep the ngrok terminal open, confirm the forwarding URL is still active, and rerun the command with the current URL.
+If ngrok returns `ERR_NGROK_3200`, the tunnel is offline. Keep the ngrok terminal open, copy the current forwarding URL, and rerun the command.
 
-If local health works but ngrok health fails, confirm both sides use the same port:
+### Check Logs
+
+Local deploy logs:
 
 ```text
-ngrok forwarding: http://127.0.0.1:8081
-pipeline port:   -Port 8081
+.runtime/api.out.log
+.runtime/api.err.log
 ```
 
-## Quick Checklist
+Temporary test server logs:
 
-Use this checklist from a clean setup:
+```text
+.runtime/test-server.out.log
+.runtime/test-server.err.log
+```
+
+Pipeline summary:
+
+```text
+.runtime/pipeline-summary.txt
+```
+
+## 11. Quick Checklist
 
 - Install Python, Node.js, npm, and PowerShell.
-- Open a terminal in the project root.
 - Run `npm install`.
 - Run `powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1`.
 - Run `npm run test:api`.
@@ -583,9 +497,5 @@ Use this checklist from a clean setup:
 - Open `http://127.0.0.1:8080/docs`.
 - Check `http://127.0.0.1:8080/actuator/health`.
 - Stop with `npm run stop:local`.
-
-For public ngrok verification:
-
-- Start ngrok with `ngrok http http://127.0.0.1:8080`.
-- Copy the real ngrok forwarding URL.
-- Run `npm run cicd:local -- -NgrokUrl "https://real-ngrok-url.ngrok-free.dev"`.
+- Run all phases with `npm run cicd:local`.
+- For ngrok, start `ngrok http http://127.0.0.1:8080` and pass the real URL with `-NgrokUrl`.
